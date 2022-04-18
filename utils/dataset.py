@@ -99,9 +99,11 @@ def extract_theme_data(theme_paths, out, out_size):
 def parse_cmd():
     parser = argparse.ArgumentParser(description='Intro_AI Project - Dataset Builder')
     parser.add_argument('-o','--out', type=str, default='dataset',
-                    help='Output folder')
+                    help='Output folder, default is set to `dataset`')
     parser.add_argument('-s','--size', type=int, default=128,
-                    help='Size of the output image (size x size)')
+                    help='Size of the output image (size x size), the default is 128')
+    parser.add_argument('-T','--themes', nargs='+',
+                    help='Only load specific icon theme, followed by a list of theme names')
     parser.add_argument('-B', '--build-dataset', action='store_true',
                     help='Build the dataset')
     return parser.parse_args()
@@ -113,5 +115,10 @@ if __name__ == '__main__':
         if not os.path.exists(args.out):
             os.makedirs(args.out)
         theme_dirs = get_icon_theme_dirs()
-        for theme in theme_dirs.keys():
-            extract_theme_data(theme_dirs[theme], os.path.join(args.out, theme), args.size)
+        if len(args.themes) == 0:
+            for theme in theme_dirs.keys():
+                extract_theme_data(theme_dirs[theme], os.path.join(args.out, theme), args.size)
+        else:
+            for theme in args.themes:
+                if theme in theme_dirs.keys():
+                    extract_theme_data(theme_dirs[theme], os.path.join(args.out, theme), args.size)
