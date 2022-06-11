@@ -1,4 +1,6 @@
 import os
+import random
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,13 +15,23 @@ import glob
 tfds.disable_progress_bar()
 autotune = tf.data.AUTOTUNE
 
+from numpy import cov
+from numpy import trace
+from numpy import iscomplexobj
+from numpy import asarray
+from numpy.random import shuffle
+from scipy.linalg import sqrtm
+from tensorflow.keras.applications.inception_v3 import InceptionV3
+from tensorflow.keras.applications.inception_v3 import preprocess_input
+from skimage.transform import resize
+
 ####################################
 #Prepare the dataset
 ####################################
 
 trainA_imgs = []
 trainA_label = []
-for filename in glob.glob('../dataset/Win11-black/*.png'):
+for filename in glob.glob('../dataset/A/*.png'):
     rgba_image = Image.open(filename)
     rgb_image = rgba_image.convert('RGB')
     tensor_img = tf.convert_to_tensor(rgb_image, dtype=tf.uint8)
@@ -27,11 +39,13 @@ for filename in glob.glob('../dataset/Win11-black/*.png'):
     trainA_imgs.append(tensor_img)
     trainA_label.append(label)
 
+trainA_imgs = random.sample(trainA_imgs, 1000)
+trainA_label = trainA_label[:1000]
 trainA = tf.data.Dataset.from_tensor_slices((trainA_imgs, trainA_label))
 
 trainB_imgs = []
 trainB_label = []
-for filename in glob.glob('../dataset/candy-icons/*.png'):
+for filename in glob.glob('../dataset/B/*.png'):
     rgba_image = Image.open(filename)
     rgb_image = rgba_image.convert('RGB')
     tensor_img = tf.convert_to_tensor(rgb_image, dtype=tf.uint8)
@@ -39,11 +53,13 @@ for filename in glob.glob('../dataset/candy-icons/*.png'):
     trainB_imgs.append(tensor_img)
     trainB_label.append(label)
 
+trainB_imgs = random.sample(trainB_imgs, 1000)
+trainB_label = trainB_label[:1000]
 trainB = tf.data.Dataset.from_tensor_slices((trainB_imgs, trainB_label))
 
 testA_imgs = []
 testA_label = []
-for filename in glob.glob('../dataset/test-Win11-black/*.png'):
+for filename in glob.glob('../dataset/test_A/*.png'):
     rgba_image = Image.open(filename)
     rgb_image = rgba_image.convert('RGB')
     tensor_img = tf.convert_to_tensor(rgb_image, dtype=tf.uint8)
@@ -55,7 +71,7 @@ testA = tf.data.Dataset.from_tensor_slices((testA_imgs, testA_label))
 
 testB_imgs = []
 testB_label = []
-for filename in glob.glob('../dataset/test-candy-icons/*.png'):
+for filename in glob.glob('../dataset/test_B/*.png'):
     rgba_image = Image.open(filename)
     rgb_image = rgba_image.convert('RGB')
     tensor_img = tf.convert_to_tensor(rgb_image, dtype=tf.uint8)
@@ -517,8 +533,51 @@ class CycleGan(keras.Model):
         }
 
 ####################################
-#Create a callback that periodically saves generated images
+#
 ####################################
+
+# scale an array of images to a new size
+def scale_images(images, new_shape):
+    images_list = list()
+    for image in images:
+        # resize with nearest neighbor interpolation
+        new_image = resize(image, new_shape, 0)
+        # store
+        images_list.append(new_image)
+    return asarray(images_list)
+
+# calculate frechet inception distance
+def calculate_fid(model, images1, images2):
+    # calculate activations
+    act1 = model.predict(images1)
+    act2 = model.predict(images2)
+    # calculate mean and covariance statistics
+    mu1, sigma1 = act1.mean(axis=0), cov(act1, rowvar=False)
+    mu2, sigma2 = act2.mean(axis=0), cov(act2, rowvar=False)
+    # calculate sum squared difference between means
+    ssdiff = np.sum((mu1 - mu2)**2.0)
+    # calculate sqrt of product between cov
+    covmean = sqrtm(sigma1.dot(sigma2))
+    # check and correct imaginary numbers from sqrt
+    if iscomplexobj(covmean):
+        covmean = covmean.real
+    # calculate score
+    fid = ssdiff + trace(sigma1 + sigma2 - 2.0 * covmean)
+    return fid
+
+# prepare the inception v3 model
+inception_model = InceptionV3(include_top=False, pooling='avg', input_shape=(299,299,3))
+
+####################################
+# Create a callback that periodically saves generated images
+# and illustrate line chart of losses vs epoch_num
+####################################
+total_loss_G = []
+total_loss_F = []
+disc_A_loss = []
+disc_B_loss = []
+epoch_num = []
+fid_scores = []
 
 class GANMonitor(keras.callbacks.Callback):
     """A callback to generate and save images after each epoch"""
@@ -528,6 +587,8 @@ class GANMonitor(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         _, ax = plt.subplots(4, 2, figsize=(12, 12))
+        imgs = []
+        predictions = []
         for i, img in enumerate(testA.take(self.num_img)):
             prediction = self.model.gen_G(img)[0].numpy()
             prediction = (prediction * 127.5 + 127.5).astype(np.uint8)
@@ -539,12 +600,77 @@ class GANMonitor(keras.callbacks.Callback):
             ax[i, 1].set_title("Translated image")
             ax[i, 0].axis("off")
             ax[i, 1].axis("off")
+            imgs.append(img)
+            predictions.append(prediction)
 
             prediction = keras.preprocessing.image.array_to_img(prediction)
             prediction.save(
                 "generated_img_{epoch}_{i}.png".format(i=i, epoch=epoch + 1)
             )
-        plt.show()
+        # plt.show()
+        if epoch % 10 == 0:
+            plt.savefig("results_img_{epoch}.png".format(epoch=epoch))
+        plt.clf()
+        plt.cla()
+        plt.close()
+
+        # plot generator losses
+        epoch_num.append(epoch)
+        total_loss_G.append(logs['G_loss'])
+        total_loss_F.append(logs['F_loss'])
+        plt.plot(epoch_num, total_loss_G, label='total_generator_loss_G')
+        plt.plot(epoch_num, total_loss_F, label='total_generator_loss_F')
+        plt.title('CycleGan generator losses VS #epoch')
+        plt.xlabel('#epoch')
+        plt.ylabel('generator losses')
+        plt.legend()
+        # plt.show()
+        if epoch % 10 == 0:
+            plt.savefig("generator_losses_{epoch}.png".format(epoch=epoch))
+        plt.clf()
+        plt.cla()
+        plt.close()
+
+        # plot discriminator losses
+        disc_A_loss.append(logs['D_X_loss'])
+        disc_B_loss.append(logs['D_Y_loss'])
+        plt.plot(epoch_num, disc_A_loss, label='total_discriminator_loss_A')
+        plt.plot(epoch_num, disc_B_loss, label='total_discriminator_loss_B')
+        plt.title('CycleGan discriminator losses VS #epoch')
+        plt.xlabel('#epoch')
+        plt.ylabel('discriminator losses')
+        plt.legend()
+        # plt.show()
+        if epoch % 10 == 0:
+            plt.savefig("discriminator_losses_{epoch}.png".format(epoch=epoch))
+        plt.clf()
+        plt.cla()
+        plt.close()
+
+        imgs = np.asarray(imgs)
+        predictions = np.asarray(predictions)
+        # convert integer to floating point values
+        imgs = imgs.astype('float32')
+        predictions = predictions.astype('float32')
+        # resize images
+        imgs = scale_images(imgs, (299, 299, 3))
+        predictions = scale_images(predictions, (299, 299, 3))
+        # pre-process images
+        imgs = preprocess_input(imgs)
+        predictions = preprocess_input(predictions)
+        # calculate fid
+        fid = calculate_fid(inception_model, imgs, predictions)
+        fid_scores.append(fid)
+        # plot fid scores vs #epoch
+        plt.plot(epoch_num, fid_scores)
+        plt.title('FID scores VS #epoch')
+        plt.xlabel('#epoch')
+        plt.ylabel('FID scores')
+        # plt.show()
+        if epoch % 10 == 0:
+            plt.savefig("FID_scores_{epoch}.png".format(epoch=epoch))
+        plt.clf()
+        plt.cla()
         plt.close()
 
 ####################################
@@ -595,11 +721,11 @@ model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
 # uncomment between start and end to train the weights
 # comment them when loading the previous weights
 # start training
-# cycle_gan_model.fit(
-#     tf.data.Dataset.zip((trainA, trainB)),
-#     epochs=10,
-#     callbacks=[plotter, model_checkpoint_callback],
-# )
+cycle_gan_model.fit(
+    tf.data.Dataset.zip((trainA, trainB)),
+    epochs=101,
+    callbacks=[plotter, model_checkpoint_callback],
+)
 # end training
 
 ####################################
@@ -607,25 +733,25 @@ model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
 # comment this part when training weights
 # uncomment them when loading previous weights
 ####################################
-weight_file = "./results/10_epoch/model_checkpoints/cyclegan_checkpoints.010"
-cycle_gan_model.load_weights(weight_file).expect_partial()
-print("Weights loaded successfully")
-
-_, ax = plt.subplots(4, 2, figsize=(10, 15))
-for i, img in enumerate(testA.take(4)):
-    prediction = cycle_gan_model.gen_G(img, training=False)[0].numpy()
-    prediction = (prediction * 127.5 + 127.5).astype(np.uint8)
-    img = (img[0] * 127.5 + 127.5).numpy().astype(np.uint8)
-
-    ax[i, 0].imshow(img)
-    ax[i, 1].imshow(prediction)
-    ax[i, 0].set_title("Input image")
-    ax[i, 0].set_title("Input image")
-    ax[i, 1].set_title("Translated image")
-    ax[i, 0].axis("off")
-    ax[i, 1].axis("off")
-
-    prediction = keras.preprocessing.image.array_to_img(prediction)
-    prediction.save("predicted_img_{i}.png".format(i=i))
-plt.tight_layout()
-plt.show()
+# weight_file = "./results/10_epoch/model_checkpoints/cyclegan_checkpoints.010"
+# cycle_gan_model.load_weights(weight_file).expect_partial()
+# print("Weights loaded successfully")
+#
+# _, ax = plt.subplots(4, 2, figsize=(10, 15))
+# for i, img in enumerate(testA.take(4)):
+#     prediction = cycle_gan_model.gen_G(img, training=False)[0].numpy()
+#     prediction = (prediction * 127.5 + 127.5).astype(np.uint8)
+#     img = (img[0] * 127.5 + 127.5).numpy().astype(np.uint8)
+#
+#     ax[i, 0].imshow(img)
+#     ax[i, 1].imshow(prediction)
+#     ax[i, 0].set_title("Input image")
+#     ax[i, 0].set_title("Input image")
+#     ax[i, 1].set_title("Translated image")
+#     ax[i, 0].axis("off")
+#     ax[i, 1].axis("off")
+#
+#     prediction = keras.preprocessing.image.array_to_img(prediction)
+#     prediction.save("predicted_img_{i}.png".format(i=i))
+# plt.tight_layout()
+# plt.show()
