@@ -9,13 +9,13 @@ def parse_argument():
     parser.add_argument('-m','--mode', type=str,default='train',
                     help='train or test')
     
-    parser.add_argument('-s','--source', type=str, default=None,
+    parser.add_argument('-s','--source', type=str, default='',
                     help='Path to a folder containing the source icons')
-    parser.add_argument('-t','--target', type=str, default=None,
+    parser.add_argument('-t','--target', type=str, default='',
                     help='Path to a folder containing the target icons')
     parser.add_argument('-o','--out', type=str, default='out',
                     help='Path to the output folder, in trainning mode, it will be the output weight folder; in testing mode, it will be the output image folder')
-    parser.add_argument('-w','--weight', type=str, default=None,
+    parser.add_argument('-w','--weight', type=str, default='',
                     help='Path to the output folder')
     parser.add_argument('-M','--model', type=str, default='cyclegan',
                     help='CycleGAN or pix2pix or NST')
@@ -28,6 +28,7 @@ def parse_argument():
 def train(source, target, tmp, output,  model='cyclegan'):
     if not source or not target:
         print('Please provide source and target')
+        return False
     
     if model.lower() == 'cyclegan':
         dirs = create_dataset([source, target], tmp, 64)
