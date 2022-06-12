@@ -9,9 +9,6 @@ from torchvision import transforms, datasets
 from torchvision.utils import save_image, make_grid
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-if torch.cuda.is_available():
-    print(" -- Using GPU -- ")
-
 
 class Generator(nn.Module):
     def __init__(self, in_ch, out_ch, ngf=64):
@@ -269,6 +266,8 @@ def G_train(D: Discriminator, G: Generator, X, BCELoss, L1, optimizer_G, lamb=10
 
 
 def train(train_data, save_path):
+    if torch.cuda.is_available():
+        print(" -- Using GPU -- ")
     subfolder = ''
     batch_size = 4
     train_loader = loadData(train_data, subfolder, batch_size, shuffle=False)
