@@ -64,6 +64,6 @@ if __name__ == '__main__':
     if args.mode == 'train':
         train(args.source, args.target, args.tmp, args.out, args.model)
     elif args.mode == 'test':
-        test(args.weight, args.out, args.model)
+        test(args.weight, args.source, args.out, args.tmp, args.model)
     else:
         print('Unknow mode: ' + args.mode)
