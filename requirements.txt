@@ -1,2 +1,12 @@
+matplotlib
 cairosvg
 cv2
+torch
+torchvision
+torchaudio
+tensorflow
+keras
+tensorflow-addons
+tensorflow-datasets
+scipy
+scikit-image
