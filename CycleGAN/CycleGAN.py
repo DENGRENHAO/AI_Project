@@ -176,10 +176,10 @@ def test(
         predictions.append(prediction)
 
         prediction = keras.preprocessing.image.array_to_img(prediction)
-        prediction.save(output_folder+"predicted_img_{i}.png".format(i=i))
+        prediction.save(os.path.join(output_folder, "predicted_img_{i}.png".format(i=i)))
 
         plt.tight_layout()
-        plt.savefig(output_folder+"results_img_{i}.png".format(i=i))
+        plt.savefig(os.path.join(output_folder, "results_img_{i}.png".format(i=i)))
     plt.clf()
     plt.cla()
     plt.close()
@@ -677,9 +677,7 @@ class GANMonitor(keras.callbacks.Callback):
             self.predictions.append(prediction)
 
             prediction = keras.preprocessing.image.array_to_img(prediction)
-            prediction.save(
-                self.output_folder+"generated_img_{epoch}_{i}.png".format(i=i, epoch=epoch + 1)
-            )
+            prediction.save(os.path.join(self.output_folder, "generated_img_{epoch}_{i}.png".format(i=i, epoch=epoch + 1)))
 
         # plot generator losses
         self.epoch_num.append(epoch+1)
@@ -692,7 +690,7 @@ class GANMonitor(keras.callbacks.Callback):
             plt.xlabel('#epoch')
             plt.ylabel('generator losses')
             plt.legend()
-            plt.savefig(self.output_folder+"generator_losses_{epoch}.png".format(epoch=epoch+1))
+            plt.savefig(os.path.join(self.output_folder, "generator_losses_{epoch}.png".format(epoch=epoch+1)))
             plt.clf()
             plt.cla()
             plt.close()
@@ -707,7 +705,7 @@ class GANMonitor(keras.callbacks.Callback):
             plt.xlabel('#epoch')
             plt.ylabel('discriminator losses')
             plt.legend()
-            plt.savefig(self.output_folder+"discriminator_losses_{epoch}.png".format(epoch=epoch+1))
+            plt.savefig(os.path.join(self.output_folder, "discriminator_losses_{epoch}.png".format(epoch=epoch+1)))
             plt.clf()
             plt.cla()
             plt.close()
@@ -733,7 +731,7 @@ class GANMonitor(keras.callbacks.Callback):
             plt.title('FID scores VS #epoch')
             plt.xlabel('#epoch')
             plt.ylabel('FID scores')
-            plt.savefig(self.output_folder+"FID_scores_{epoch}.png".format(epoch=epoch+1))
+            plt.savefig(os.path.join(self.output_folder, "FID_scores_{epoch}.png".format(epoch=epoch+1)))
             plt.clf()
             plt.cla()
             plt.close()
