@@ -17,7 +17,7 @@ def parse_argument():
     parser.add_argument('-o','--out', type=str, default='out',
                     help='Path to the output folder, in trainning mode, it will be the output weight folder; in testing mode, it will be the output image folder')
     parser.add_argument('-w','--weight', type=str, default='',
-                    help='Path to the output folder')
+                    help='Path to the folder containing saved weights, normally the trainning output folder')
     parser.add_argument('-M','--model', type=str, default='cyclegan',
                     help='CycleGAN or pix2pix or NST')
     parser.add_argument('--tmp', type=str, default='tmp',

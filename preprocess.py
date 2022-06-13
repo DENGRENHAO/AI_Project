@@ -60,13 +60,17 @@ def create_dataset(in_dirs, out_path, out_img_size, paired=False):
         for i in range(len(in_dirs)):
             preprocess_input(in_dirs[i], out_dirs[i], out_img_size)
     else:
-        theme_source = in_dirs[0]
-        theme_target = in_dirs[1]
+        tmp_out = out_dirs[0]
+        if os.path.exists(tmp_out):
+            shutil.rmtree(tmp_out)
+        os.makedirs(tmp_out)
+        theme_source = get_dir_content(in_dirs[0])
+        theme_target = get_dir_content(in_dirs[1])
         for name in theme_target:
             if not name in theme_source:
                 continue
             try:
-                out_path = os.path.join(out_dirs[0], name + '.png')
+                out_path = os.path.join(tmp_out, name + '.png')
                 img1 = open_img(theme_target[name], out_img_size)
                 img2 = open_img(theme_source[name], out_img_size)
                 img = cv2.hconcat([img1, img2])
