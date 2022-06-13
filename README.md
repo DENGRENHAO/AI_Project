@@ -41,14 +41,4 @@ python3 main.py --model pix2pix --mode test -w ../pix2pix_weight/ -s ../dataset/
 
 ## Experiment results
 
-### CycleGAN
-
-![](images/CycleGAN_result.png)
-
-### pix2pix
-
-![](images/pix2pix_result.png)
-
-### NST (Baseline)
-
-![](images/NST_result.png)
+![](images/experiment_results.png)
