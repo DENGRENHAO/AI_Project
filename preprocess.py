@@ -57,7 +57,7 @@ def create_dataset(in_dirs, out_path, out_img_size, paired=False):
         out_dirs[i] = os.path.join(out_path, out_dirs[i])
 
     if not paired:
-        for i in range(in_dirs):
+        for i in range(len(in_dirs)):
             preprocess_input(in_dirs[i], out_dirs[i], out_img_size)
     else:
         theme_source = in_dirs[0]
