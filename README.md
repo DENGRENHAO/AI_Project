@@ -35,7 +35,7 @@ python3 main.py --model pix2pix --mode train -s ../dataset/Papirus/64x64/apps/ -
 python3 main.py --model pix2pix --mode test -w ../pix2pix_weight/ -s ../dataset/Papirus/64x64/apps/ -o ../out_img/ --tmp ../tmp/
 ```
 
-- 訓練好的模型位於 '../pix2pix_weight/'，使用訓練好的模型將 `../dataset/Papirus/64x64/apps/` 中的圖片進行風格轉換，輸出於 `./out_img/`
+- 訓練好的模型位於 `../pix2pix_weight/`，使用訓練好的模型將 `../dataset/Papirus/64x64/apps/` 中的圖片進行風格轉換，輸出於 `./out_img/`
 
 ## Hyperparameters
 ## Experiment results
