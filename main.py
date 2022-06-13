@@ -57,7 +57,8 @@ def test(weight, input, out, tmp, model='cyclegan'):
     if model.lower() == 'cyclegan':
         preprocess_input(input, in_path, 64)
         weight_file_path = os.path.join(weight, "40_epoch/model_checkpoints/cyclegan_checkpoints.40")
-        CycleGAN.test(in_path, weight_file_path, out)
+        input_path = os.path.join(in_path, "*.png")
+        CycleGAN.test(input_path, weight_file_path, out)
     elif model.lower() == 'pix2pix':
         preprocess_input(input, in_path, 256)
         pix2pix.test(weight, in_path, out)
