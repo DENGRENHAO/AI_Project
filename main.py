@@ -3,6 +3,7 @@ import shutil
 import argparse
 from preprocess import create_dataset, preprocess_input
 from pix2pix import pix2pix
+from CycleGAN import CycleGAN
 
 def parse_argument():
     parser = argparse.ArgumentParser(description='AI Final Project')
@@ -25,16 +26,20 @@ def parse_argument():
     return parser.parse_args()
 
 
-def train(source, target, tmp, output,  model='cyclegan'):
+def train(source, target, tmp, output, model='cyclegan'):
     if not source or not target:
         print('Please provide source and target')
         return False
     
     if model.lower() == 'cyclegan':
         dirs = create_dataset([source, target], tmp, 64)
+        content_img_path = os.path.join(dirs[0], '*.png')
+        style_img_path = os.path.join(dirs[0], '*.png')
+        checkpoint_filepath = os.path.join(output, "{epoch}_epoch/model_checkpoints/cyclegan_checkpoints.{epoch}")
+        CycleGAN.train(content_img_path, style_img_path, checkpoint_filepath, output)
     elif model.lower() == 'pix2pix':
         dirs = create_dataset([source, target], tmp, 256, paired=True)
-        pix2pix.train(dirs[0], target, output)
+        pix2pix.train(dirs[0], output)
     else:
         print('Unsupported model:', model)
         return False
@@ -49,7 +54,9 @@ def test(weight, input, out, tmp, model='cyclegan'):
     os.makedirs(in_path)
 
     if model.lower() == 'cyclegan':
-        pass
+        preprocess_input(input, in_path, 64)
+        weight_file_path = os.path.join(weight, "20_epoch/model_checkpoints/cyclegan_checkpoints.20")
+        CycleGAN.test(in_path, weight_file_path, out)
     elif model.lower() == 'pix2pix':
         preprocess_input(input, in_path, 256)
         pix2pix.test(weight, in_path, out)
